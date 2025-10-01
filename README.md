@@ -47,7 +47,7 @@ Este proyecto está dividido en dos partes: **backend** (Laravel) y **frontend**
 
 3. **Configura el archivo `.env`:**
    - Copia el archivo `.env.example` y renómbralo a `.env`.
-   - Configura las variables de entorno (base de datos, claves, etc.).
+   - Configura las variables de entorno (VITE_API_BASE_URL) con la url del backend si llegase a cambarse.
 
 4. **Ejecuta el servidor de desarrollo del frontend:**
    ```bash
