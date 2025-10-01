@@ -34,7 +34,7 @@ interface NewKeyword {
 const tasks = ref<Task[]>([]);
 const loading = ref<boolean>(false);
 const keywordLoading = ref<boolean>(false);
-const availableKeywords = ref<Keyword[]>([]);
+const keywords = ref<Keyword[]>([]);
 const showKeywordModal = ref<boolean>(false);
 
 const newTask = ref<NewTask>({
@@ -71,7 +71,7 @@ const fetchKeywords = async (): Promise<void> => {
     const { data, response } = await useAxios("/keywords/index").get();
 
     if (response.status == 200 && data) {
-      availableKeywords.value = data.data;
+      keywords.value = data.data;
     }
   } catch (error) {
     console.error("Error al cargar keywords:", error);
@@ -226,7 +226,7 @@ onMounted(async (): Promise<void> => {
               :disabled="loading"
             >
               <option
-                v-for="keyword in availableKeywords"
+                v-for="keyword in keywords"
                 :key="keyword.id"
                 :value="keyword.id"
               >
