@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import axios from 'axios';
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from "vue";
 
 const { toast } = useToast();
 
@@ -21,12 +20,6 @@ interface Task {
   updated_at: string;
 }
 
-interface ApiResponse<T> {
-  code: number;
-  data: T;
-  message?: string;
-}
-
 interface NewTask {
   title: string;
   keyword_ids: number[];
@@ -37,9 +30,6 @@ interface NewKeyword {
   name: string;
 }
 
-// Configuración de axios
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL2 || 'http://localhost:8000/api';
-
 // Estados reactivos con tipos
 const tasks = ref<Task[]>([]);
 const loading = ref<boolean>(false);
@@ -48,146 +38,143 @@ const availableKeywords = ref<Keyword[]>([]);
 const showKeywordModal = ref<boolean>(false);
 
 const newTask = ref<NewTask>({
-  title: '',
+  title: "",
   keyword_ids: [],
-  is_done: false
+  is_done: false,
 });
 
 const newKeyword = ref<NewKeyword>({
-  name: ''
-});
-
-// Computed para extraer keywords únicas de todas las tareas
-const existingKeywords = computed<Keyword[]>(() => {
-  const allKeywords = tasks.value.flatMap(task => task.keywords);
-  const uniqueKeywords: Keyword[] = [];
-  const seen = new Set<number>();
-
-  allKeywords.forEach(keyword => {
-    if (!seen.has(keyword.id)) {
-      seen.add(keyword.id);
-      uniqueKeywords.push(keyword);
-    }
-  });
-
-  return uniqueKeywords;
+  name: "",
 });
 
 // Cargar tareas
 const fetchTasks = async (): Promise<void> => {
   loading.value = true;
   try {
-    const response = await axios.get<ApiResponse<Task[]>>(`${API_BASE_URL}/tasks/index`);
-    tasks.value = response.data.data;
+    const { data, response } = await useAxios("/tasks/index").get();
+
+    if (response.status == 200 && data) {
+      tasks.value = data.data;
+    }
   } catch (error) {
-    console.error('Error al cargar tareas:', error);
-    toast("Error", 'Error al cargar las tareas', "danger");
+    console.error("Error al cargar tareas:", error);
+    toast("Error", "Error al cargar las tareas", "danger");
   } finally {
     loading.value = false;
   }
-}
+};
 
 // Cargar palabras clave disponibles
 const fetchKeywords = async (): Promise<void> => {
   loading.value = true;
   try {
-    const response = await axios.get<ApiResponse<Keyword[]>>(`${API_BASE_URL}/keywords/index`);
-    availableKeywords.value = response.data.data;
+    const { data, response } = await useAxios("/keywords/index").get();
+
+    if (response.status == 200 && data) {
+      availableKeywords.value = data.data;
+    }
   } catch (error) {
-    console.error('Error al cargar keywords:', error);
-    toast("Error", 'Error al cargar las palabras claves', "danger");
+    console.error("Error al cargar keywords:", error);
+    toast("Error", "Error al cargar las palabras claves", "danger");
   } finally {
     loading.value = false;
   }
-}
+};
 
 // Crear nueva tarea
 const createTask = async (): Promise<void> => {
   if (!newTask.value.title.trim()) {
-    toast("Error", 'Por favor ingresa un título para la tarea', "danger");
+    toast("Error", "Por favor ingresa un título para la tarea", "danger");
     return;
   }
 
   loading.value = true;
   try {
-    const taskToCreate: NewTask = {
+    const { data, response } = await useAxios("/tasks/store").post({
       title: newTask.value.title,
       keyword_ids: newTask.value.keyword_ids,
-      is_done: false
-    };
+    });
 
-    const response = await axios.post<ApiResponse<Task>>(`${API_BASE_URL}/tasks/store`, taskToCreate);
+    if (response.status == 200 && data) {
+      // Resetear formulario
+      newTask.value.title = "";
+      newTask.value.keyword_ids = [];
 
-    // Resetear formulario
-    newTask.value.title = '';
-    newTask.value.keyword_ids = [];
-
-    // Recargar tareas
-    await fetchTasks();
-
-    toast('Éxito', 'Tarea creada exitosamente', 'success');
+      // Recargar tareas
+      await fetchTasks();
+    }
   } catch (error) {
-    console.error('Error al crear tarea:', error);
-    toast('Error', 'Error al crear la tarea', 'danger');
+    console.error("Error al crear tarea:", error);
+    toast("Error", "Error al crear la tarea", "danger");
   } finally {
     loading.value = false;
   }
-}
+};
 
 // Crear nueva palabra clave
 const createKeyword = async (): Promise<void> => {
   if (!newKeyword.value.name.trim()) {
-    toast("Error", 'Por favor ingresa un nombre para la palabra clave', "danger");
+    toast(
+      "Error",
+      "Por favor ingresa un nombre para la palabra clave",
+      "danger"
+    );
     return;
   }
 
   keywordLoading.value = true;
   try {
-    const response = await axios.post<ApiResponse<Keyword>>(`${API_BASE_URL}/keywords/store`, {
-      name: newKeyword.value.name
+    const { data, response } = await useAxios("/keywords/store").post({
+      name: newKeyword.value.name,
     });
 
-    // Cerrar modal y resetear formulario
-    showKeywordModal.value = false;
-    newKeyword.value.name = '';
+    if (response.status == 200 && data) {
+      // Cerrar modal y resetear formulario
+      showKeywordModal.value = false;
+      newKeyword.value.name = "";
 
-    // Recargar la lista de palabras clave
-    await fetchKeywords();
-
-    toast('Éxito', 'Palabra clave creada exitosamente', 'success');
+      // Recargar la lista de palabras clave
+      await fetchKeywords();
+    }
   } catch (error) {
-    console.error('Error al crear palabra clave:', error);
-    toast('Error', 'Error al crear la palabra clave', 'danger');
+    console.error("Error al crear palabra clave:", error);
+    toast("Error", "Error al crear la palabra clave", "danger");
   } finally {
     keywordLoading.value = false;
   }
-}
+};
 
 // Cambiar estado de la tarea
-const toggleTaskStatus = async (taskId: number, isDone: boolean): Promise<void> => {
+const toggleTaskStatus = async (
+  taskId: number,
+  isDone: boolean
+): Promise<void> => {
   loading.value = true;
   try {
-    const response = await axios.put<ApiResponse<Task>>(`${API_BASE_URL}/tasks/toggle/${taskId}`, {
-      is_done: isDone ? 1 : 0
+    const { data, response } = await useAxios(`/tasks/toggle/${taskId}`).put({
+      is_done: isDone ? 1 : 0,
     });
-
-    // Actualizar la tarea en la lista local
-    const taskIndex = tasks.value.findIndex(task => task.id === taskId);
-    if (taskIndex !== -1) {
-      if (response.data.data) {
-        tasks.value[taskIndex] = response.data.data;
-      } else {
-        tasks.value[taskIndex].is_done = isDone ? 1 : 0;
-        tasks.value[taskIndex].updated_at = new Date().toISOString().split('T')[0];
+    if (response.status == 200 && data) {
+      // Actualizar la tarea en la lista local
+      const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
+      if (taskIndex !== -1) {
+        if (response.data.data) {
+          tasks.value[taskIndex] = response.data.data;
+        } else {
+          tasks.value[taskIndex].is_done = isDone ? 1 : 0;
+          tasks.value[taskIndex].updated_at = new Date()
+            .toISOString()
+            .split("T")[0];
+        }
       }
     }
   } catch (error) {
-    console.error('Error al actualizar tarea:', error);
-    toast("Error", 'Error al actualizar el estado de la tarea', "danger");
+    console.error("Error al actualizar tarea:", error);
+    toast("Error", "Error al actualizar el estado de la tarea", "danger");
   } finally {
     loading.value = false;
   }
-}
+};
 
 // Cargar datos al montar el componente
 onMounted(async (): Promise<void> => {
@@ -205,7 +192,11 @@ onMounted(async (): Promise<void> => {
       <div class="card-header">
         <div class="d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">Nueva Tarea</h5>
-          <button type="button" class="btn btn-outline-primary btn-sm" @click="showKeywordModal = true">
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-sm"
+            @click="showKeywordModal = true"
+          >
             Crear Palabra Clave
           </button>
         </div>
@@ -214,56 +205,106 @@ onMounted(async (): Promise<void> => {
         <form @submit.prevent="createTask">
           <div class="mb-3">
             <label for="taskTitle" class="form-label">Título</label>
-            <input type="text" class="form-control" id="taskTitle" v-model="newTask.title" required
-              placeholder="Ingresa el título de la tarea" :disabled="loading">
+            <input
+              type="text"
+              class="form-control"
+              id="taskTitle"
+              v-model="newTask.title"
+              required
+              placeholder="Ingresa el título de la tarea"
+              :disabled="loading"
+            />
           </div>
 
           <div class="mb-3">
             <label for="taskKeywords" class="form-label">Palabras Clave</label>
-            <select multiple class="form-select" id="taskKeywords" v-model="newTask.keyword_ids" :disabled="loading">
-              <option v-for="keyword in availableKeywords" :key="keyword.id" :value="keyword.id">
+            <select
+              multiple
+              class="form-select"
+              id="taskKeywords"
+              v-model="newTask.keyword_ids"
+              :disabled="loading"
+            >
+              <option
+                v-for="keyword in availableKeywords"
+                :key="keyword.id"
+                :value="keyword.id"
+              >
                 {{ keyword.name }}
               </option>
             </select>
             <div class="form-text">
-              Mantén presionada la tecla Ctrl (Cmd en Mac) para seleccionar múltiples palabras clave
+              Mantén presionada la tecla Ctrl (Cmd en Mac) para seleccionar
+              múltiples palabras clave
             </div>
           </div>
 
           <button type="submit" class="btn btn-primary" :disabled="loading">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
-            {{ loading ? 'Creando...' : 'Crear Tarea' }}
+            <span
+              v-if="loading"
+              class="spinner-border spinner-border-sm me-2"
+            ></span>
+            {{ loading ? "Creando..." : "Crear Tarea" }}
           </button>
         </form>
       </div>
     </div>
 
     <!-- Modal para crear palabra clave -->
-    <div v-if="showKeywordModal" class="modal fade show d-block" tabindex="-1"
-      style="background-color: rgba(0, 0, 0, 50%);">
+    <div
+      v-if="showKeywordModal"
+      class="modal fade show d-block"
+      tabindex="-1"
+      style="background-color: rgba(0, 0, 0, 50%)"
+    >
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Crear Nueva Palabra Clave</h5>
-            <button type="button" class="btn-close" @click="showKeywordModal = false"></button>
+            <button
+              type="button"
+              class="btn-close"
+              @click="showKeywordModal = false"
+            ></button>
           </div>
           <div class="modal-body">
             <form @submit.prevent="createKeyword">
               <div class="mb-3">
-                <label for="keywordName" class="form-label">Nombre de la Palabra Clave</label>
-                <input type="text" class="form-control" id="keywordName" v-model="newKeyword.name" required
-                  placeholder="Ingresa el nombre de la palabra clave" :disabled="keywordLoading">
+                <label for="keywordName" class="form-label"
+                  >Nombre de la Palabra Clave</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="keywordName"
+                  v-model="newKeyword.name"
+                  required
+                  placeholder="Ingresa el nombre de la palabra clave"
+                  :disabled="keywordLoading"
+                />
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="showKeywordModal = false"
-              :disabled="keywordLoading">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="showKeywordModal = false"
+              :disabled="keywordLoading"
+            >
               Cancelar
             </button>
-            <button type="button" class="btn btn-primary" @click="createKeyword" :disabled="keywordLoading">
-              <span v-if="keywordLoading" class="spinner-border spinner-border-sm me-2"></span>
-              {{ keywordLoading ? 'Creando...' : 'Crear Palabra Clave' }}
+            <button
+              type="button"
+              class="btn btn-primary"
+              @click="createKeyword"
+              :disabled="keywordLoading"
+            >
+              <span
+                v-if="keywordLoading"
+                class="spinner-border spinner-border-sm me-2"
+              ></span>
+              {{ keywordLoading ? "Creando..." : "Crear Palabra Clave" }}
             </button>
           </div>
         </div>
@@ -286,25 +327,45 @@ onMounted(async (): Promise<void> => {
         </div>
 
         <div v-else>
-          <div v-for="task in tasks" :key="task.id" class="card mb-3" :class="{ 'border-success': task.is_done }">
+          <div
+            v-for="task in tasks"
+            :key="task.id"
+            class="card mb-3"
+            :class="{ 'border-success': task.is_done }"
+          >
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
-                  <h6 class="card-title mb-2" :class="{ 'text-decoration-line-through text-muted': task.is_done }">
+                  <h6
+                    class="card-title mb-2"
+                    :class="{
+                      'text-decoration-line-through text-muted': task.is_done,
+                    }"
+                  >
                     {{ task.title }}
                   </h6>
 
                   <!-- Estado -->
-                  <span class="badge mb-2" :class="task.is_done ? 'bg-success' : 'bg-warning'">
-                    {{ task.is_done ? 'Completada' : 'Pendiente' }}
+                  <span
+                    class="badge mb-2"
+                    :class="task.is_done ? 'bg-success' : 'bg-warning'"
+                  >
+                    {{ task.is_done ? "Completada" : "Pendiente" }}
                   </span>
 
                   <!-- Palabras clave -->
                   <div class="mt-2">
-                    <span v-for="keyword in task.keywords" :key="keyword.id" class="badge bg-secondary me-1 mb-1">
+                    <span
+                      v-for="keyword in task.keywords"
+                      :key="keyword.id"
+                      class="badge bg-secondary me-1 mb-1"
+                    >
                       {{ keyword.name }}
                     </span>
-                    <span v-if="task.keywords.length === 0" class="text-muted small">
+                    <span
+                      v-if="task.keywords.length === 0"
+                      class="text-muted small"
+                    >
                       Sin palabras clave
                     </span>
                   </div>
@@ -318,9 +379,21 @@ onMounted(async (): Promise<void> => {
 
                 <div class="btn-group ms-3">
                   <!-- Botón para alternar estado -->
-                  <button @click="toggleTaskStatus(task.id, !task.is_done)" class="btn btn-sm"
-                    :class="task.is_done ? 'btn-outline-warning' : 'btn-outline-success'" :disabled="loading">
-                    {{ task.is_done ? 'Marcar como pendiente' : 'Marcar como completada' }}
+                  <button
+                    @click="toggleTaskStatus(task.id, !task.is_done)"
+                    class="btn btn-sm"
+                    :class="
+                      task.is_done
+                        ? 'btn-outline-warning'
+                        : 'btn-outline-success'
+                    "
+                    :disabled="loading"
+                  >
+                    {{
+                      task.is_done
+                        ? "Marcar como pendiente"
+                        : "Marcar como completada"
+                    }}
                   </button>
                 </div>
               </div>

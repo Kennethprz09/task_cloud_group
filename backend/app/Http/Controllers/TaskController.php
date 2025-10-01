@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Task\TaskRequest;
 use App\Http\Resources\Task\TaskListResource;
 use App\Models\Task;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class TaskController extends Controller
@@ -52,12 +53,12 @@ class TaskController extends Controller
         }
     }
 
-    public function toggle($id)
+    public function toggle($id, Request $request)
     {
         DB::beginTransaction();
         try {
             $task = Task::findOrFail($id);
-            $task->is_done = !$task->is_done;
+            $task->is_done = $request->is_done;
             $task->save();
 
             DB::commit();
