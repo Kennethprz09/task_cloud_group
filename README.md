@@ -45,7 +45,11 @@ Este proyecto está dividido en dos partes: **backend** (Laravel) y **frontend**
    npm install --force
    ```
 
-3. **Ejecuta el servidor de desarrollo del frontend:**
+3. **Configura el archivo `.env`:**
+   - Copia el archivo `.env.example` y renómbralo a `.env`.
+   - Configura las variables de entorno (base de datos, claves, etc.).
+
+4. **Ejecuta el servidor de desarrollo del frontend:**
    ```bash
    npm run dev
    ```
