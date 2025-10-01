@@ -1,3 +1,9 @@
+## 📌 Requisitos Previos
+Asegúrate de tener instalado lo siguiente:
+- [PHP](https://www.php.net/) (versión 8.2 o superior)
+- [Node.js](https://nodejs.org/) (versión 22 o superior)
+- Base de datos (MySQL)
+
 # Instrucciones para Ejecutar el Proyecto
 
 Este proyecto está dividido en dos partes: **backend** (Laravel) y **frontend** (Vue 3). Sigue los pasos a continuación para configurar y ejecutar el proyecto localmente.
